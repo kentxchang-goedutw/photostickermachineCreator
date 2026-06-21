@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>剛好拍貼趣 - 教師後台控制中心</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: #bae6fd; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #38bdf8; border-radius: 4px; }
+    .rmbg-checkerboard {
+      background-image: linear-gradient(45deg,#cfe8f5 25%,transparent 25%),
+        linear-gradient(-45deg,#cfe8f5 25%,transparent 25%),
+        linear-gradient(45deg,transparent 75%,#cfe8f5 75%),
+        linear-gradient(-45deg,transparent 75%,#cfe8f5 75%);
+      background-size: 20px 20px;
+      background-position: 0 0,0 10px,10px -10px,-10px 0px;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+  </style>
+</head>
+<body class="bg-sky-50 text-slate-800 min-h-screen font-sans flex flex-col">
+
+<header class="bg-white border-b border-sky-200 shadow-md flex-shrink-0">
+  <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="bg-sky-500 p-2.5 rounded-xl text-white shadow-md shadow-sky-300/30">
+        <i class="fa-solid fa-camera-retro text-xl"></i>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold tracking-wide">剛好拍貼趣 <span class="text-xs bg-emerald-100 text-emerald-500 border border-emerald-200 px-2 py-0.5 rounded-full ml-1">v3.4 手繪整合版</span></h1>
+        <p class="text-xs text-slate-500 mt-0.5">課堂專用 iPad 多圖框拍貼分發與大數據收集系統</p>
+      </div>
+    </div>
+    <nav class="flex flex-wrap gap-1 bg-white p-1 rounded-xl border border-sky-200">
+      <button id="btn-tab-main" onclick="switchTab('tab-main')" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-sky-500 text-white shadow-sm">
+        <i class="fa-solid fa-sliders mr-1"></i>圖框分發
+      </button>
+      <button id="btn-tab-rmbg" onclick="switchTab('tab-rmbg')" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700">
+        <i class="fa-solid fa-scissors mr-1"></i>圖片去背
+      </button>
+      <button id="btn-tab-data" onclick="switchTab('tab-data')" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700">
+        <i class="fa-solid fa-chart-column mr-1"></i>數據看板
+      </button>
+      <button id="btn-tab-gas" onclick="switchTab('tab-gas')" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700">
+        <i class="fa-solid fa-cloud mr-1"></i>GAS設定
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main class="flex-1 max-w-7xl mx-auto p-4 md:p-6 w-full">
+
+  <!-- ===== Tab 1: 圖框分發 ===== -->
+  <div id="tab-main" class="tab-content active space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <div class="lg:col-span-5 bg-white border border-sky-200 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+        <div class="space-y-5">
+          <div class="border-b border-sky-200 pb-3">
+            <h2 class="text-sm font-bold text-sky-600 flex items-center gap-1.5"><i class="fa-solid fa-circle-one text-xs"></i> 批量配置活動圖框</h2>
+            <p class="text-[11px] text-slate-500 mt-0.5">可多次上傳，新圖框會累加入清單，不影響已有圖框</p>
+          </div>
+          <div class="space-y-2">
+            <label class="block text-xs font-semibold text-slate-600">選擇圖框圖片 (可多選，累加新增)</label>
+            <div class="relative border-2 border-dashed border-sky-200 hover:border-sky-300 rounded-xl p-4 text-center cursor-pointer bg-sky-50 transition-colors group">
+              <input type="file" id="frame-files" multiple accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+              <div class="space-y-1">
+                <i class="fa-solid fa-images text-slate-500 group-hover:text-sky-600 text-xl transition-colors"></i>
+                <p class="text-xs text-slate-600 font-medium" id="file-status-text">點擊或拖曳多個圖框至此處</p>
+                <p class="text-[10px] text-slate-500">建議解析度：1024 x 768 (4:3比例)</p>
+              </div>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <label for="camera-facing" class="block text-xs font-semibold text-slate-600">使用者 iPad 初始預設鏡頭</label>
+            <select id="camera-facing" class="w-full bg-white border border-sky-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-sky-400">
+              <option value="environment" selected>後置鏡頭 (拍他人、拍材料)</option>
+              <option value="user">前置鏡頭 (自拍機模式 - 已整合自動鏡像)</option>
+            </select>
+          </div>
+          <div class="bg-sky-50 rounded-xl p-3 border border-sky-200 grid grid-cols-2 gap-2 text-center">
+            <div class="border-r border-sky-100">
+              <p class="text-[10px] text-slate-500">當前載入圖框</p>
+              <p class="text-sm font-bold text-sky-600 mt-0.5" id="frame-count">0 張</p>
+            </div>
+            <div>
+              <p class="text-[10px] text-slate-500">雲端同步狀態</p>
+              <p class="text-xs font-bold text-amber-600 mt-1" id="stat-status">未設定 GAS</p>
+            </div>
+          </div>
+        </div>
+        <div class="pt-5 border-t border-sky-200 mt-5 space-y-2">
+          <button onclick="generateStudentHtml()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 rounded-xl shadow-lg transition-all text-xs flex items-center justify-center gap-2">
+            <i class="fa-solid fa-gift text-sm"></i> 封裝並下載使用者端網頁 (.html)
+          </button>
+          <button onclick="clearAllFrames()" class="w-full bg-sky-100 hover:bg-rose-100 hover:text-rose-500 text-slate-500 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-1">
+            <i class="fa-solid fa-trash-can text-xs"></i> 清除全部圖框
+          </button>
+          <p class="text-center text-[10px] text-slate-500">將下載的網頁傳至使用者 iPad 或佈署至 Github Pages 即可拍照</p>
+        </div>
+      </div>
+
+      <div class="lg:col-span-7 bg-white border border-sky-200 rounded-2xl p-5 shadow-xl space-y-4">
+        <div class="border-b border-sky-200 pb-3 flex items-center justify-between">
+          <h2 class="text-sm font-bold text-sky-600 flex items-center gap-1.5"><i class="fa-solid fa-circle-two text-xs"></i> 圖框管理與合成大預覽</h2>
+          <span class="text-[10px] text-slate-500">滑入縮圖顯示刪除鈕</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
+          <div class="sm:col-span-4 space-y-1.5">
+            <p class="text-[11px] text-slate-500 font-semibold"><i class="fa-solid fa-list-ol mr-1"></i>圖框清單：</p>
+            <div id="frames-thumb-container" class="grid grid-cols-3 sm:grid-cols-1 gap-2 max-h-[320px] overflow-y-auto pr-1 scrollbar-thin">
+              <p class="col-span-3 sm:col-span-1 text-xs text-slate-500 text-center py-8 bg-sky-50 rounded-xl border border-sky-200 italic">尚未上傳任何圖框</p>
+            </div>
+          </div>
+          <div class="sm:col-span-8 flex flex-col justify-center">
+            <div class="relative w-full aspect-[4/3] bg-white border border-sky-200 rounded-xl overflow-hidden flex items-center justify-center shadow-inner">
+              <div id="preview-placeholder" class="text-center space-y-1 text-slate-500 p-4">
+                <i class="fa-solid fa-photo-film text-3xl"></i>
+                <p class="text-xs">請先於左側選取並上傳圖框圖片</p>
+              </div>
+              <img id="frame-preview" class="hidden w-full h-full object-fill" src="">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Tab 2: 圖片去背工坊 ===== -->
+  <div id="tab-rmbg" class="tab-content">
+    <div class="flex flex-col lg:flex-row gap-4" style="min-height:600px">
+      <aside class="w-full lg:w-72 bg-white border border-sky-200 rounded-2xl flex flex-col flex-shrink-0 overflow-y-auto no-scrollbar">
+        <div id="rmbg-panel-upload" class="p-5 border-b border-sky-200">
+          <h2 class="text-sm font-semibold text-slate-500 mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-image text-sky-600"></i> 匯入圖片
+          </h2>
+          <div id="rmbg-dropzone" class="border-2 border-dashed border-sky-200 hover:border-sky-300 rounded-xl p-5 text-center cursor-pointer bg-sky-50 hover:bg-sky-50 transition-all group">
+            <input type="file" id="rmbg-file-input" accept="image/*" class="hidden">
+            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-500 group-hover:text-sky-600 transition-colors mb-2"></i>
+            <p class="text-xs font-medium text-slate-600">點擊或拖曳圖片至此</p>
+            <p class="text-[10px] text-slate-500 mt-1">支援 PNG, JPG, WEBP</p>
+          </div>
+        </div>
+
+        <div id="rmbg-panel-tools" class="hidden p-5 space-y-4 flex-1">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-500 mb-3 flex items-center gap-2">
+              <i class="fa-solid fa-hammer text-sky-600"></i> 去背工坊
+            </h2>
+            <div class="grid grid-cols-2 gap-2">
+              <button id="rmbg-tool-wand" class="rmbg-tool-btn flex flex-col items-center p-3 rounded-xl border border-sky-200 bg-white hover:bg-sky-100 transition-all text-center" data-tool="wand">
+                <i class="fa-solid fa-wand-magic-sparkles text-sky-600 text-lg mb-1"></i>
+                <span class="text-xs font-medium">智慧魔術棒</span>
+                <span class="text-[9px] text-slate-500 mt-0.5">點擊區域去色</span>
+              </button>
+              <button id="rmbg-tool-chroma" class="rmbg-tool-btn flex flex-col items-center p-3 rounded-xl border border-sky-200 bg-white hover:bg-sky-100 transition-all text-center" data-tool="chroma">
+                <i class="fa-solid fa-droplet text-emerald-500 text-lg mb-1"></i>
+                <span class="text-xs font-medium">全局去色</span>
+                <span class="text-[9px] text-slate-500 mt-0.5">消除同色背景</span>
+              </button>
+              <button id="rmbg-tool-eraser" class="rmbg-tool-btn flex flex-col items-center p-3 rounded-xl border border-sky-200 bg-white hover:bg-sky-100 transition-all text-center" data-tool="eraser">
+                <i class="fa-solid fa-eraser text-rose-500 text-lg mb-1"></i>
+                <span class="text-xs font-medium">手動橡皮擦</span>
+                <span class="text-[9px] text-slate-500 mt-0.5">擦除多餘細節</span>
+              </button>
+              <button id="rmbg-tool-restore" class="rmbg-tool-btn flex flex-col items-center p-3 rounded-xl border border-sky-200 bg-white hover:bg-sky-100 transition-all text-center" data-tool="restore">
+                <i class="fa-solid fa-paintbrush text-amber-600 text-lg mb-1"></i>
+                <span class="text-xs font-medium">還原畫筆</span>
+                <span class="text-[9px] text-slate-500 mt-0.5">塗抹救回細節</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="border-t border-sky-200 pt-4 space-y-3">
+            <h2 class="text-sm font-semibold text-slate-500 flex items-center gap-2">
+              <i class="fa-solid fa-sliders text-sky-600"></i> 工具參數
+            </h2>
+            <div id="rmbg-control-tolerance" class="space-y-2">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-500">色彩容差度</span>
+                <span id="rmbg-val-tolerance" class="font-semibold text-sky-600">30</span>
+              </div>
+              <input type="range" id="rmbg-input-tolerance" min="0" max="150" value="30" class="w-full h-1.5 bg-sky-100 rounded-lg appearance-none cursor-pointer accent-sky-400">
+            </div>
+            <div id="rmbg-control-feather" class="space-y-2 hidden">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-500">邊緣羽化範圍</span>
+                <span id="rmbg-val-feather" class="font-semibold text-emerald-500">5px</span>
+              </div>
+              <input type="range" id="rmbg-input-feather" min="0" max="50" value="5" class="w-full h-1.5 bg-sky-100 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+            </div>
+            <div id="rmbg-control-brush-size" class="space-y-2 hidden">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-500">畫筆半徑大小</span>
+                <span id="rmbg-val-brush-size" class="font-semibold text-rose-500">20px</span>
+              </div>
+              <input type="range" id="rmbg-input-brush-size" min="1" max="150" value="20" class="w-full h-1.5 bg-sky-100 rounded-lg appearance-none cursor-pointer accent-sky-400">
+            </div>
+            <div id="rmbg-control-brush-hardness" class="space-y-2 hidden">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-500">畫筆邊緣硬度</span>
+                <span id="rmbg-val-brush-hardness" class="font-semibold text-rose-500">80%</span>
+              </div>
+              <input type="range" id="rmbg-input-brush-hardness" min="0" max="100" value="80" class="w-full h-1.5 bg-sky-100 rounded-lg appearance-none cursor-pointer accent-sky-400">
+            </div>
+          </div>
+
+          <div class="border-t border-sky-200 pt-4">
+            <h2 class="text-sm font-semibold text-slate-500 mb-3 flex items-center gap-2">
+              <i class="fa-solid fa-eye text-sky-600"></i> 視圖模式
+            </h2>
+            <div class="grid grid-cols-3 gap-1.5 p-1 bg-white rounded-lg border border-sky-100">
+              <button id="rmbg-bg-grid" class="bg-white text-xs py-1.5 rounded-md font-medium border border-sky-200 transition-all">透明格</button>
+              <button id="rmbg-bg-dark" class="text-xs py-1.5 rounded-md text-slate-500 hover:text-white transition-all">純黑色</button>
+              <button id="rmbg-bg-light" class="text-xs py-1.5 rounded-md text-slate-500 hover:text-white transition-all">純白色</button>
+            </div>
+          </div>
+
+          <div class="border-t border-sky-200 pt-4 space-y-2">
+            <div class="flex gap-2">
+              <button id="rmbg-btn-undo" class="flex-1 py-2 bg-sky-100 hover:bg-sky-200 rounded-lg text-xs font-semibold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-1">
+                <i class="fa-solid fa-rotate-left"></i> 復原
+              </button>
+              <button id="rmbg-btn-redo" class="flex-1 py-2 bg-sky-100 hover:bg-sky-200 rounded-lg text-xs font-semibold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-1">
+                <i class="fa-solid fa-rotate-right"></i> 重做
+              </button>
+              <button id="rmbg-btn-reset" class="flex-1 py-2 bg-sky-100 hover:bg-rose-100 hover:text-rose-500 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1">
+                <i class="fa-solid fa-arrows-rotate"></i> 重設
+              </button>
+            </div>
+            <!-- 設為圖框按鈕 -->
+            <button id="rmbg-btn-set-frame" onclick="rmbg_setAsFrame()" class="w-full py-3 bg-gradient-to-r from-emerald-200 to-teal-300 hover:from-emerald-300 hover:to-teal-300 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-xs">
+              <i class="fa-solid fa-plus-circle"></i> 套用為圖框 (加入圖框清單)
+            </button>
+            <button id="rmbg-btn-download" class="w-full py-2.5 bg-gradient-to-r from-sky-200 to-fuchsia-300 hover:from-sky-300 hover:to-fuchsia-300 text-white font-semibold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-xs">
+              <i class="fa-solid fa-download"></i> 匯出透明 PNG
+            </button>
+            <button id="rmbg-btn-change" class="w-full py-2 bg-white hover:bg-sky-200 border border-sky-200 text-slate-600 text-xs font-medium rounded-xl transition-all">更換新圖片</button>
+          </div>
+        </div>
+
+        <div id="rmbg-instructions" class="p-5 text-slate-500 text-xs space-y-2 border-t border-sky-100">
+          <p class="font-semibold text-slate-500">💡 使用提示：</p>
+          <p>🔹 <strong>魔術棒：</strong>點擊背景自動選取相連同色區域。</p>
+          <p>🔹 <strong>全局去色：</strong>類似綠幕，消除整張相片中某顏色。</p>
+          <p>🔹 <strong>去背完成後</strong>點「套用為圖框」可直接加入圖框清單。</p>
+        </div>
+      </aside>
+
+      <section class="flex-1 bg-white border border-sky-200 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden" style="min-height:500px">
+        <div id="rmbg-empty-state" class="text-center max-w-sm p-8 bg-sky-50 rounded-3xl border border-sky-100">
+          <div class="w-16 h-16 rounded-2xl bg-sky-100 flex items-center justify-center mb-4 text-sky-600 border border-sky-200 mx-auto">
+            <i class="fa-solid fa-scissors text-3xl"></i>
+          </div>
+          <h3 class="text-base font-bold text-slate-700 mb-2">上傳圖片開始去背</h3>
+          <p class="text-xs text-slate-500 mb-5 leading-relaxed">純瀏覽器 Canvas 技術，所有運算皆在本機執行，不上傳任何內容。</p>
+          <button id="rmbg-btn-browse" class="px-5 py-2.5 bg-sky-500 hover:bg-sky-500 text-white text-xs font-medium rounded-xl transition-all flex items-center gap-2 mx-auto">
+            <i class="fa-solid fa-plus"></i> 選擇本機相片
+          </button>
+        </div>
+        <div id="rmbg-canvas-wrapper" class="hidden relative max-w-full max-h-full flex items-center justify-center rounded-lg overflow-hidden shadow-2xl rmbg-checkerboard select-none p-2">
+          <canvas id="rmbg-main-canvas" class="max-w-full cursor-crosshair" style="max-height:60vh"></canvas>
+          <div id="rmbg-brush-cursor" class="absolute border border-white rounded-full pointer-events-none mix-blend-difference hidden z-10"></div>
+        </div>
+        <div id="rmbg-tool-tip-bar" class="hidden absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/95 border border-sky-100 text-slate-600 text-xs px-4 py-2 rounded-full shadow-xl flex items-center gap-2 z-10">
+          <span class="inline-block w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
+          <span id="rmbg-tool-tip-text">目前工具提示</span>
+        </div>
+        <div id="rmbg-loading-overlay" class="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-50 hidden rounded-2xl">
+          <div class="relative w-12 h-12">
+            <div class="absolute inset-0 border-4 border-sky-200 rounded-full"></div>
+            <div class="absolute inset-0 border-4 border-sky-300 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <p class="text-xs font-medium text-sky-500 mt-3 animate-pulse">智慧處理中...</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ===== Tab 3: 數據看板 ===== -->
+  <div id="tab-data" class="tab-content space-y-6">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="bg-white p-4 rounded-xl border border-sky-200 flex items-center justify-between shadow-md">
+        <div><p class="text-xs text-slate-500">累計上傳總人次</p><p class="text-xl font-black text-sky-600 mt-1" id="stat-count">0 人</p></div>
+        <i class="fa-solid fa-users text-2xl text-slate-400"></i>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-sky-200 flex items-center justify-between shadow-md">
+        <div><p class="text-xs text-slate-500">今日收到照片</p><p class="text-xl font-black text-emerald-500 mt-1" id="stat-today">0 張</p></div>
+        <i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-400"></i>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-sky-200 flex items-center justify-between shadow-md">
+        <div class="w-full"><p class="text-xs text-slate-500 mb-1">系統同步狀況</p><div id="sync-status-badge" class="text-xs font-mono text-slate-500 italic mt-2">等待同步指令中...</div></div>
+      </div>
+    </div>
+    <div class="bg-white border border-sky-200 rounded-2xl p-5 shadow-xl space-y-4">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-sky-200 pb-3">
+        <h2 class="text-sm font-bold text-emerald-500"><i class="fa-solid fa-database mr-1"></i> 已接收之使用者作品快照</h2>
+        <div class="flex gap-2 w-full sm:w-auto">
+          <button onclick="loadDemoData()" class="px-3 py-1.5 bg-sky-100 hover:bg-sky-200 text-slate-700 rounded-lg text-xs font-medium transition-all">載入模擬數據</button>
+          <button id="btn-sync-cloud" onclick="fetchCloudData()" class="px-3 py-1.5 bg-emerald-400 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-md flex items-center gap-1.5">
+            <i id="sync-icon" class="fa-solid fa-rotate"></i> 同步拍貼照資料夾
+          </button>
+        </div>
+      </div>
+      <div class="overflow-x-auto rounded-xl border border-sky-200 bg-white">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-sky-50 border-b border-sky-200 text-slate-500 text-[11px] font-bold tracking-wider">
+              <th class="px-4 py-3">上傳時間</th><th class="px-4 py-3">姓名</th><th class="px-4 py-3">作品快照預覽</th><th class="px-4 py-3 text-right">操作動作</th>
+            </tr>
+          </thead>
+          <tbody id="data-table-body" class="text-xs divide-y divide-sky-100 text-slate-600">
+            <tr><td colspan="4" class="px-4 py-8 text-center text-slate-500 italic">點擊右上方「同步拍貼照資料夾」按鈕即可撈取雲端硬碟內的使用者作品</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Tab 4: GAS設定 ===== -->
+  <div id="tab-gas" class="tab-content space-y-6">
+    <div class="bg-white border border-sky-200 rounded-2xl p-5 shadow-xl space-y-4">
+      <div class="border-b border-sky-200 pb-3">
+        <h2 class="text-sm font-bold text-sky-600 flex items-center gap-1.5"><i class="fa-solid fa-cloud mr-1"></i> Google Apps Script (GAS) 連線密鑰設定</h2>
+      </div>
+      <div class="space-y-2">
+        <label class="block text-xs font-semibold text-slate-600">GAS 專屬應用程式網址 (Web App URL)</label>
+        <div class="flex gap-2">
+          <input type="url" id="gas-url" placeholder="https://script.google.com/macros/s/AKfycb.../exec" class="w-full bg-white border border-sky-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-sky-400">
+          <button onclick="saveGasUrl()" class="px-5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-xs font-bold transition-all whitespace-nowrap shadow-md">儲存設定</button>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white border border-sky-200 rounded-2xl p-5 shadow-xl space-y-3">
+      <div class="flex justify-between items-center border-b border-sky-200 pb-3">
+        <div>
+          <h3 class="text-xs font-bold text-amber-600"><i class="fa-solid fa-code mr-1"></i> 雲端後端 GAS 原始碼 (v4.0 - 原圖存雲端硬碟)</h3>
+          <p class="text-[10px] text-slate-500 mt-0.5">請在 Google 試算表點選「擴充功能」→「Apps Script」，貼上本代碼：（圖片將以原圖存入試算表同路徑的「拍貼照」資料夾，不再寫入試算表）</p>
+        </div>
+        <button onclick="copyGasCode()" class="px-3 py-1 bg-sky-100 hover:bg-sky-200 text-amber-600 border border-amber-200 rounded-lg text-[10px] font-bold transition-all whitespace-nowrap">
+          <i class="fa-regular fa-copy mr-1"></i> 一鍵複製
+        </button>
+      </div>
+      <pre id="gas-code-block" class="bg-white p-4 rounded-xl border border-sky-100 text-[11px] font-mono text-emerald-500 overflow-x-auto max-h-[340px] scrollbar-thin leading-relaxed">/**
+ * 剛好拍貼趣 - 雲端後端控制 GAS 腳本 (v4.1)
+ * 學生端以 no-cors 上傳「原圖 PNG」，後端存入試算表同路徑的「拍貼照」
+ * 資料夾並設為「知道連結者可檢視」；分享連結改以 JSONP 回傳，
+ * 以解決從本機 file:// 開啟時無法讀取回應的 CORS 限制。不再寫入試算表。
+ */
+
+// 取得（或建立）與本試算表同一層的「拍貼照」資料夾
+function getPhotoFolder() {
+  var ssId = SpreadsheetApp.getActiveSpreadsheet().getId();
+  var parents = DriveApp.getFileById(ssId).getParents();
+  var parent = parents.hasNext() ? parents.next() : DriveApp.getRootFolder();
+  var found = parent.getFoldersByName("拍貼照");
+  return found.hasNext() ? found.next() : parent.createFolder("拍貼照");
+}
+
+// 學生端上傳圖片：存檔、設定分享、把分享連結暫存到 Cache 供 JSONP 取回
+function doPost(e) {
+  var lock = LockService.getScriptLock();
+  var output = ContentService.createTextOutput().setMimeType(ContentService.MimeType.JSON);
+  try {
+    lock.waitLock(20000);
+    var data = JSON.parse(e.postData.contents);
+    var folder = getPhotoFolder();
+    var b64 = (data.photoData || "").replace(/^data:image\/\w+;base64,/, "");
+    var bytes = Utilities.base64Decode(b64);
+    var name = (data.studentName || "匿名學生").replace(/[\/\\]/g, "_");
+    var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
+    var file = folder.createFile(Utilities.newBlob(bytes, "image/png", name + "_" + stamp + ".png"));
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    if (data.uploadId) {
+      CacheService.getScriptCache().put("url_" + data.uploadId, file.getUrl(), 600);
+    }
+    return output.setContent(JSON.stringify({ status: "success", fileUrl: file.getUrl() }));
+  } catch (err) {
+    return output.setContent(JSON.stringify({ status: "error", message: err.toString() }));
+  } finally { lock.releaseLock(); }
+}
+
+// JSONP 端點：
+//   ?action=geturl&uploadId=XXX&callback=cb → 回傳該次上傳的分享連結
+//   ?callback=cb                            → 回傳「拍貼照」資料夾內所有圖片（教師端）
+function doGet(e) {
+  var p = (e && e.parameter) ? e.parameter : {};
+  var payload;
+  if (p.action === "geturl") {
+    var url = CacheService.getScriptCache().get("url_" + p.uploadId);
+    payload = url ? { status: "success", fileUrl: url } : { status: "pending" };
+  } else {
+    payload = listPhotos();
+  }
+  var json = JSON.stringify(payload);
+  if (p.callback) {
+    return ContentService.createTextOutput(p.callback + "(" + json + ")")
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+}
+
+// 列出「拍貼照」資料夾內所有圖片（供教師端預覽）
+function listPhotos() {
+  var folder = getPhotoFolder();
+  var files = folder.getFiles();
+  var records = [];
+  while (files.hasNext()) {
+    var f = files.next();
+    var base = f.getName().replace(/\.png$/i, "");
+    records.push({
+      timestamp: Utilities.formatDate(f.getDateCreated(), Session.getScriptTimeZone(), "yyyy/MM/dd HH:mm:ss"),
+      studentName: base.split("_")[0],
+      photoData: "https://drive.google.com/thumbnail?id=" + f.getId() + "&sz=w1000",
+      fileUrl: f.getUrl()
+    });
+  }
+  records.sort(function(a, b) { return a.timestamp > b.timestamp ? -1 : 1; });
+  return records;
+}</pre>
+    </div>
+  </div>
+
+</main>
+
+<footer class="border-t border-sky-100 bg-sky-50 px-6 py-4 text-center text-xs text-slate-500 flex-shrink-0">
+  <p>Made by <a href="https://kentxchang.blogspot.tw" target="_blank" rel="noopener noreferrer" class="text-sky-600 hover:text-sky-500 font-semibold transition-colors">阿剛老師</a></p>
+  <p class="mt-1">本軟體採「<span class="text-slate-500 font-medium">創用 CC 姓名標示-非商業性-禁止改作 4.0 國際授權條款</span>」釋出，僅限個人、教育或學術研究非商業性目的之本地端免費使用。</p>
+</footer>
+
+<div id="image-modal" class="hidden fixed inset-0 bg-black/95 z-50 items-center justify-center p-4" onclick="closeImageModal()">
+  <button class="absolute top-4 right-4 text-white text-2xl p-2" onclick="closeImageModal()"><i class="fa-solid fa-xmark"></i></button>
+  <div class="max-w-4xl max-h-[85vh] flex flex-col items-center gap-3" onclick="event.stopPropagation()">
+    <img id="modal-img" class="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl border border-sky-100" src="">
+    <p id="modal-caption" class="text-sm font-semibold text-slate-600 bg-white/90 px-4 py-1.5 rounded-full border border-sky-200"></p>
+  </div>
+</div>
+
+<script>
+// ==============================
+// MAIN APP STATE
+// ==============================
+let globalState = {
+  framesArray: [],
+  cameraFacing: 'environment',
+  gasUrl: localStorage.getItem('gasUrl') || '',
+  studentRecords: []
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (globalState.gasUrl) {
+    const gi = document.getElementById('gas-url');
+    if (gi) gi.value = globalState.gasUrl;
+    updateStatStatus("雲端位址已設定", "text-xs font-bold text-sky-600");
+  }
+  const cs = document.getElementById('camera-facing');
+  if (cs) { globalState.cameraFacing = cs.value; cs.addEventListener('change', e => { globalState.cameraFacing = e.target.value; }); }
+  const fi = document.getElementById('frame-files');
+  if (fi) fi.addEventListener('change', handleMultipleFilesSelect);
+  initRmbgTool();
+});
+
+function updateStatStatus(text, cls) {
+  const el = document.getElementById('stat-status');
+  if (el) { el.innerText = text; el.className = cls; }
+}
+
+// ==============================
+// TAB SWITCHING
+// ==============================
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => {
+    el.classList.remove('bg-sky-500','text-white','shadow-sm');
+    el.classList.add('text-slate-500','hover:text-slate-700');
+  });
+  const t = document.getElementById(tabId); if (t) t.classList.add('active');
+  const b = document.getElementById('btn-' + tabId);
+  if (b) { b.classList.remove('text-slate-500','hover:text-slate-700'); b.classList.add('bg-sky-500','text-white','shadow-sm'); }
+}
+
+// ==============================
+// FRAME MANAGEMENT (累加上傳)
+// ==============================
+function handleMultipleFilesSelect(e) {
+  const files = e.target.files;
+  if (!files || files.length === 0) return;
+
+  // ★ 修正：先把 FileList 轉成普通陣列、先記下數量，
+  //    再清空 input；否則 e.target.value='' 會讓 FileList
+  //    在非同步回呼中失效，導致 files.length 變 0、
+  //    updateFramesListUI() 永遠不被呼叫。
+  const fileArray = Array.from(files);   // 轉成穩定陣列
+  const totalFiles = fileArray.length;   // 捕捉實際數量
+  e.target.value = '';                   // 清空 input（此後 files 無效，不再使用）
+
+  const statusText = document.getElementById('file-status-text');
+  if (statusText) statusText.innerText = '正在讀取 ' + totalFiles + ' 個圖框...';
+  let loaded = 0;
+
+  // ★ 不重置 framesArray，累加新圖框
+  for (let i = 0; i < totalFiles; i++) {
+    const file = fileArray[i];
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      globalState.framesArray.push({ name: file.name, base64: ev.target.result });
+      loaded++;
+      if (loaded === totalFiles) {   // ★ 用 totalFiles，不用 files.length
+        if (statusText) statusText.innerText = '成功載入！目前共 ' + globalState.framesArray.length + ' 個圖框';
+        updateFramesListUI();
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function removeFrame(index) {
+  globalState.framesArray.splice(index, 1);
+  updateFramesListUI();
+}
+
+function clearAllFrames() {
+  if (globalState.framesArray.length === 0) return;
+  if (!confirm('確定要清除全部 ' + globalState.framesArray.length + ' 張圖框嗎？')) return;
+  globalState.framesArray = [];
+  updateFramesListUI();
+}
+
+function updateFramesListUI() {
+  const container = document.getElementById('frames-thumb-container');
+  const countEl = document.getElementById('frame-count');
+  if (countEl) countEl.innerText = globalState.framesArray.length + ' 張';
+  if (!container) return;
+  if (globalState.framesArray.length === 0) {
+    container.innerHTML = '<p class="col-span-3 sm:col-span-1 text-xs text-slate-500 text-center py-8 bg-sky-50 rounded-xl border border-sky-200 italic">尚未上傳任何圖框</p>';
+    const pp = document.getElementById('preview-placeholder'); const fp = document.getElementById('frame-preview');
+    if (pp) pp.classList.remove('hidden'); if (fp) fp.classList.add('hidden');
+    return;
+  }
+  let html = '';
+  for (let i = 0; i < globalState.framesArray.length; i++) {
+    html += '<div class="group relative aspect-[4/3] border border-sky-200 rounded-lg overflow-hidden bg-white cursor-pointer hover:border-sky-300 transition-all shadow-sm" onclick="setMainPreview(' + i + ')">';
+    html += '<img src="' + globalState.framesArray[i].base64 + '" class="w-full h-full object-fill opacity-70 group-hover:opacity-100">';
+    html += '<div class="absolute bottom-0 inset-x-0 bg-black/70 text-[9px] text-white truncate px-1 text-center py-0.5">' + (i+1) + '號框</div>';
+    html += '<button onclick="event.stopPropagation();removeFrame(' + i + ')" class="absolute top-1 right-1 bg-rose-400 hover:bg-sky-500 text-white rounded-full w-5 h-5 text-[10px] items-center justify-center hidden group-hover:flex z-10 leading-none">×</button>';
+    html += '</div>';
+  }
+  container.innerHTML = html;
+  setMainPreview(0);
+}
+
+function setMainPreview(index) {
+  const frame = globalState.framesArray[index]; if (!frame) return;
+  const img = document.getElementById('frame-preview'); const ph = document.getElementById('preview-placeholder');
+  if (img) { img.src = frame.base64; img.classList.remove('hidden'); }
+  if (ph) ph.classList.add('hidden');
+}
+
+function saveGasUrl() {
+  const urlInput = document.getElementById('gas-url'); if (!urlInput) return;
+  const url = urlInput.value.trim();
+  if (!url) { alert('請輸入有效的 GAS 網址！'); return; }
+  globalState.gasUrl = url; localStorage.setItem('gasUrl', url);
+  updateStatStatus("雲端位址已設定","text-xs font-bold text-sky-600");
+  alert('GAS 雲端位址儲存成功！');
+}
+
+function loadDemoData() {
+  const m = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+  globalState.studentRecords = [
+    { timestamp:"2026/06/08 10:15:22", studentName:"王小明", photoData:m },
+    { timestamp:"2026/06/08 10:18:40", studentName:"李大同", photoData:m }
+  ];
+  renderTableAndChart();
+  const b=document.getElementById('sync-status-badge'); if(b){b.innerText="已載入模擬數據";b.className="text-xs font-mono text-amber-600 font-bold";}
+}
+
+function fetchCloudData() {
+  if (!globalState.gasUrl) { alert("無法同步！請先填寫並儲存 GAS Web App 網址。"); return; }
+  const btn=document.getElementById('btn-sync-cloud'), icon=document.getElementById('sync-icon'), badge=document.getElementById('sync-status-badge');
+  if(btn&&icon){btn.disabled=true;icon.classList.add('animate-spin');}
+  if(badge){badge.innerText="正在連線雲端...";badge.className="text-xs font-mono text-sky-600 animate-pulse";}
+
+  // ★ 以 JSONP（<script> 載入）撈取資料，避開從本機 file:// 開啟時的 CORS 限制
+  const cbName='cbList_'+Date.now();
+  const script=document.createElement('script');
+  let settled=false;
+  const restore=()=>{if(btn&&icon){btn.disabled=false;icon.classList.remove('animate-spin');}};
+  const cleanup=()=>{try{delete window[cbName];}catch(e){window[cbName]=undefined;}if(script.parentNode)script.parentNode.removeChild(script);};
+  const timer=setTimeout(()=>{if(settled)return;settled=true;cleanup();restore();
+    if(badge){badge.innerText="連線逾時！請確認 GAS 設定";badge.className="text-xs font-mono text-rose-500 font-bold";}
+    alert('連線逾時，請確認 GAS 已部署且網址正確。\n\n已自動載入模擬資料。');loadDemoData();},15000);
+  window[cbName]=(data)=>{
+    if(settled)return;settled=true;clearTimeout(timer);cleanup();restore();
+    let arr=Array.isArray(data)?data:(data&&Array.isArray(data.data)?data.data:[]);
+    if(arr.length===0){if(badge){badge.innerText="連線成功，但拍貼照資料夾內尚無圖片。";badge.className="text-xs font-mono text-amber-600 font-semibold";}alert("連線成功！拍貼照資料夾內尚無圖片。");}
+    else{globalState.studentRecords=arr;renderTableAndChart();if(badge){badge.innerText='同步成功！載入 '+arr.length+' 張作品';badge.className="text-xs font-mono text-emerald-500 font-bold";}}
+  };
+  script.onerror=()=>{if(settled)return;settled=true;clearTimeout(timer);cleanup();restore();
+    if(badge){badge.innerText="連線失敗！請確認 GAS 設定";badge.className="text-xs font-mono text-rose-500 font-bold";}
+    alert('連線失敗，請確認 GAS 設定。\n\n已自動載入模擬資料。');loadDemoData();};
+  script.src=globalState.gasUrl+'?callback='+cbName+'&t='+Date.now();
+  document.body.appendChild(script);
+}
+
+function renderTableAndChart() {
+  const tbody=document.getElementById('data-table-body');
+  const ce=document.getElementById('stat-count'), te=document.getElementById('stat-today');
+  if(!tbody)return;
+  if(ce)ce.innerText=globalState.studentRecords.length+' 人';
+  if(te)te.innerText=globalState.studentRecords.length+' 張';
+  if(globalState.studentRecords.length===0){tbody.innerHTML='<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500 italic">目前無資料</td></tr>';return;}
+  tbody.innerHTML=globalState.studentRecords.map(row=>{
+    const time=row.timestamp||"無時間", name=row.studentName||row.name||"匿名學生", photo=row.photoData||row.photo||"";
+    let imgHtml=photo&&(photo.startsWith('data:image')||photo.startsWith('http'))
+      ?'<div class="relative w-16 aspect-[4/3] bg-sky-50 border border-sky-200 rounded-md overflow-hidden cursor-pointer hover:scale-105 hover:border-sky-300 transition-all group" onclick="openImageModal(\''+photo+'\',\''+name+'\')" ><img src="'+photo+'" class="w-full h-full object-cover"><div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-magnifying-glass-plus text-[10px] text-white"></i></div></div>'
+      :'<span class="text-[11px] text-slate-400 italic">圖片欄位空白</span>';
+    return '<tr class="hover:bg-sky-100 transition-colors"><td class="px-4 py-3 font-mono text-slate-500">'+time+'</td><td class="px-4 py-3 text-slate-700">'+name+'</td><td class="px-4 py-3">'+imgHtml+'</td><td class="px-4 py-3 text-right"><button onclick="openImageModal(\''+photo+'\',\''+name+'\')" class="text-[11px] bg-sky-100 hover:bg-sky-600 text-slate-700 hover:text-white px-2 py-1 rounded transition-colors '+(photo?'':'opacity-30 pointer-events-none')+'"><i class="fa-solid fa-expand mr-1"></i>放大</button></td></tr>';
+  }).join('');
+}
+
+function openImageModal(src,title){
+  if(!src||src==='undefined')return;
+  const m=document.getElementById('image-modal'),i=document.getElementById('modal-img'),c=document.getElementById('modal-caption');
+  if(m&&i&&c){i.src=src;c.innerText=title+" 的作品成果";m.classList.remove('hidden');m.classList.add('flex');}
+}
+function closeImageModal(){const m=document.getElementById('image-modal');if(m){m.classList.add('hidden');m.classList.remove('flex');}}
+function copyGasCode(){navigator.clipboard.writeText(document.getElementById('gas-code-block').innerText).then(()=>alert('GAS 原始碼已複製到剪貼簿！'));}
+
+// ==============================
+// STUDENT HTML GENERATION
+// ==============================
+function generateStudentHtml() {
+  if (globalState.framesArray.length === 0) { alert("請先上傳至少一張透明背景的 PNG 圖框！"); return; }
+  const framesJson = JSON.stringify(globalState.framesArray);
+  const camFacing = globalState.cameraFacing;
+  const gasUrl = globalState.gasUrl;
+
+  const html = `<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>使用者端 - 拍貼趣</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script>
+  <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"><\/script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    input[type="text"], button { -webkit-appearance: none; }
+    .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: #e0f2fe; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #7dd3fc; border-radius: 2px; }
+    .mirror-mode { transform: scaleX(-1); }
+    .color-btn.active { outline: 3px solid #0284c7; outline-offset: 2px; }
+    .size-btn.active { background: #38bdf8 !important; color: white !important; }
+    .tool-mode-btn.active { background: #38bdf8 !important; color: white !important; border-color: #7dd3fc !important; }
+    /* ── Range slider 軌道修正 (避免深色背景下不可見) ── */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 4px;
+      background: #bae6fd;   /* 淡藍 軌道底色 */
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #38bdf8;   /* 淡藍 滑塊 */
+      border: 2px solid #e2e8f0;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    }
+    input[type="range"]::-moz-range-track {
+      height: 6px;
+      border-radius: 4px;
+      background: #475569;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 2px solid #e2e8f0;
+      cursor: pointer;
+    }
+  <\/style>
+<\/head>
+<body class="bg-sky-50 text-slate-800 min-h-screen flex flex-col font-sans select-none">
+  <header class="bg-white py-3 px-4 flex justify-between items-center border-b border-sky-200 shadow-md flex-shrink-0">
+    <h1 class="text-sm font-bold text-sky-600"><i class="fa-solid fa-camera mr-2"><\/i>多圖框智慧拍貼機<\/h1>
+    <div id="user-badge" class="text-xs text-slate-500 bg-white px-3 py-1 rounded-full border border-sky-100 hidden"><\/div>
+  <\/header>
+
+  <main class="flex-1 w-full max-w-7xl mx-auto p-3 flex flex-col justify-center items-center">
+
+    <!-- 登入面板 -->
+    <div id="login-panel" class="bg-white p-6 rounded-2xl border border-sky-200 shadow-xl space-y-4 max-w-xs w-full">
+      <div class="text-center pb-2">
+        <div class="bg-sky-500 p-3 rounded-xl text-white inline-block mb-3"><i class="fa-solid fa-camera-retro text-2xl"><\/i><\/div>
+        <h2 class="text-base font-bold">剛好拍貼趣<\/h2>
+        <p class="text-xs text-slate-500 mt-1">請輸入您的姓名開始拍貼<\/p>
+      <\/div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">姓名<\/label>
+        <input type="text" id="stu-name" placeholder="例：王小明" class="w-full px-3 py-2.5 bg-white border border-sky-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-sky-400">
+      <\/div>
+      <button onclick="startCamera()" class="w-full bg-sky-500 hover:bg-sky-600 font-bold py-3 text-xs tracking-wider transition-all shadow-md cursor-pointer rounded-xl">
+        啟動相機 <i class="fa-solid fa-angle-right ml-1"><\/i>
+      <\/button>
+    <\/div>
+
+    <!-- 工作台 -->
+    <div id="workbench-panel" class="hidden w-full grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
+
+      <!-- 圖框選擇 -->
+      <div class="md:col-span-2 bg-white border border-sky-200 rounded-2xl p-3 flex flex-col gap-2">
+        <p class="text-[11px] font-bold text-sky-600 border-b border-sky-200 pb-1.5 flex items-center gap-1"><i class="fa-solid fa-wand-magic-sparkles"><\/i> 1. 自選圖框<\/p>
+        <div id="student-frame-selector" class="flex md:flex-col gap-2 overflow-x-auto md:overflow-y-auto max-h-[140px] md:max-h-[500px] p-0.5 scrollbar-thin"><\/div>
+      <\/div>
+
+      <!-- 相機 / 結果畫面 -->
+      <div class="md:col-span-7 bg-white border border-sky-200 rounded-2xl p-3 flex flex-col justify-center items-center gap-2">
+        <!-- 拍攝畫面 -->
+        <div id="wrapper-video" class="relative w-full aspect-[4/3] bg-black rounded-xl overflow-hidden border border-sky-200 shadow-inner">
+          <video id="video" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover"><\/video>
+          <img id="frame-overlay" class="absolute inset-0 w-full h-full object-fill pointer-events-none z-10">
+        <\/div>
+        <canvas id="output-canvas" class="hidden"><\/canvas>
+
+        <!-- 結果畫面 (照片 + 手繪圖層) -->
+        <div id="wrapper-result" class="hidden relative w-full aspect-[4/3] bg-white rounded-xl overflow-hidden border border-sky-200 shadow-inner">
+          <img id="ios-target-img" class="absolute inset-0 w-full h-full object-fill" alt="拍攝成果">
+          <!-- ★ 預設 pointer-events:none → iOS 長按存圖可正常使用；開啟手繪後才改為 auto -->
+          <canvas id="draw-canvas" class="absolute inset-0 w-full h-full" style="pointer-events:none; cursor:crosshair"><\/canvas>
+        <\/div>
+
+        <!-- 手繪工具列 (拍照後顯示) -->
+        <div id="draw-toolbar" class="hidden w-full bg-sky-50 border border-sky-200 rounded-xl p-3 space-y-2.5">
+          <!-- 開關按鈕列 -->
+          <div class="flex items-center gap-2">
+            <button id="draw-toggle-btn" onclick="toggleDrawing()" class="flex-1 py-2 bg-sky-100 hover:bg-sky-600 border border-sky-200 hover:border-sky-300 text-slate-600 hover:text-white rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-pen-nib"><\/i> 開啟手繪裝飾
+            <\/button>
+            <button onclick="clearDrawings()" class="px-3 py-2 bg-sky-100 hover:bg-rose-100 hover:text-rose-500 text-slate-500 border border-sky-200 rounded-xl text-[10px] font-semibold transition-all">
+              <i class="fa-solid fa-eraser mr-1"><\/i>清除
+            <\/button>
+          <\/div>
+          <p id="draw-hint" class="text-[10px] text-amber-600 bg-amber-100 border border-amber-200 rounded-lg px-2 py-1.5 leading-relaxed">
+            <i class="fa-solid fa-hand-pointer mr-1"><\/i><b>手繪關閉中：<\/b>可直接<b>長按相片區域<\/b>選「加入照片」儲存到相簿。
+          <\/p>
+          <!-- 手繪工具面板 (開啟手繪後顯示) -->
+          <div id="draw-tools-panel" class="hidden space-y-2.5">
+          <!-- 工具模式 -->
+          <div class="flex gap-1.5">
+            <button id="mode-pen" onclick="setDrawMode('pen')" class="tool-mode-btn active flex-1 py-1.5 bg-sky-100 border border-sky-200 text-slate-700 rounded-lg text-[11px] font-semibold transition-all">
+              <i class="fa-solid fa-pen mr-1"><\/i>畫筆
+            <\/button>
+            <button id="mode-eraser" onclick="setDrawMode('eraser')" class="tool-mode-btn flex-1 py-1.5 bg-sky-100 border border-sky-200 text-slate-700 rounded-lg text-[11px] font-semibold transition-all">
+              <i class="fa-solid fa-eraser mr-1"><\/i>橡皮擦
+            <\/button>
+            <button id="mode-stamp" onclick="setDrawMode('stamp')" class="tool-mode-btn flex-1 py-1.5 bg-sky-100 border border-sky-200 text-slate-700 rounded-lg text-[11px] font-semibold transition-all">
+              <i class="fa-solid fa-star mr-1"><\/i>印章
+            <\/button>
+            <button id="mode-text" onclick="setDrawMode('text')" class="tool-mode-btn flex-1 py-1.5 bg-sky-100 border border-sky-200 text-slate-700 rounded-lg text-[11px] font-semibold transition-all">
+              <i class="fa-solid fa-font mr-1"><\/i>文字
+            <\/button>
+          <\/div>
+          <!-- 顏色選擇 (畫筆模式) -->
+          <div id="color-row" class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[10px] text-slate-500 mr-0.5">顏色：<\/span>
+            <button class="color-btn active w-6 h-6 rounded-full border-2 border-sky-200 hover:scale-110 transition-transform" style="background:#ff3b5c" onclick="setDrawColor('#ff3b5c')" title="紅"><\/button>
+            <button class="color-btn w-6 h-6 rounded-full border-2 border-sky-200 hover:scale-110 transition-transform" style="background:#ff9f0a" onclick="setDrawColor('#ff9f0a')" title="橘"><\/button>
+            <button class="color-btn w-6 h-6 rounded-full border-2 border-sky-200 hover:scale-110 transition-transform" style="background:#ffd60a" onclick="setDrawColor('#ffd60a')" title="黃"><\/button>
+            <button class="color-btn w-6 h-6 rounded-full border-2 border-sky-200 hover:scale-110 transition-transform" style="background:#30d158" onclick="setDrawColor('#30d158')" title="綠"><\/button>
+            <button class="color-btn w-6 h-6 rounded-full border-2 border-sky-200 hover:scale-110 transition-transform" style="background:#0a84ff" onclick="setDrawColor('#0a84ff')" title="藍"><\/button>
+            <button class="color-btn w-6 h-6 rounded-full border-2 border-sky-200 hover:scale-110 transition-transform" style="background:#bf5af2" onclick="setDrawColor('#bf5af2')" title="紫"><\/button>
+            <button class="color-btn w-6 h-6 rounded-full border-2 border-sky-200 hover:scale-110 transition-transform" style="background:#ffffff" onclick="setDrawColor('#ffffff')" title="白"><\/button>
+            <button class="color-btn w-6 h-6 rounded-full border-2 border-sky-200 hover:scale-110 transition-transform" style="background:#1c1c1e" onclick="setDrawColor('#1c1c1e')" title="黑"><\/button>
+          <\/div>
+          <!-- 筆刷大小 -->
+          <div id="size-row" class="flex items-center gap-1.5">
+            <span class="text-[10px] text-slate-500 mr-0.5">筆刷：<\/span>
+            <button class="size-btn active px-3 py-1 bg-sky-100 border border-sky-200 text-slate-700 rounded-lg text-[11px] transition-all" onclick="setDrawSize(3,'this')">細<\/button>
+            <button class="size-btn px-3 py-1 bg-sky-100 border border-sky-200 text-slate-700 rounded-lg text-[11px] transition-all" onclick="setDrawSize(7,'this')">中<\/button>
+            <button class="size-btn px-3 py-1 bg-sky-100 border border-sky-200 text-slate-700 rounded-lg text-[11px] transition-all" onclick="setDrawSize(14,'this')">粗<\/button>
+            <button class="size-btn px-3 py-1 bg-sky-100 border border-sky-200 text-slate-700 rounded-lg text-[11px] transition-all" onclick="setDrawSize(28,'this')">超粗<\/button>
+          <\/div>
+          <!-- 印章選擇 (印章模式) -->
+          <div id="stamp-row" class="hidden flex items-center gap-2 flex-wrap">
+            <span class="text-[10px] text-slate-500">印章：<\/span>
+            <button class="stamp-btn text-xl hover:scale-125 transition-transform" onclick="setStamp('❤️')">❤️<\/button>
+            <button class="stamp-btn text-xl hover:scale-125 transition-transform" onclick="setStamp('⭐')">⭐<\/button>
+            <button class="stamp-btn text-xl hover:scale-125 transition-transform" onclick="setStamp('😊')">😊<\/button>
+            <button class="stamp-btn text-xl hover:scale-125 transition-transform" onclick="setStamp('🌟')">🌟<\/button>
+            <button class="stamp-btn text-xl hover:scale-125 transition-transform" onclick="setStamp('✨')">✨<\/button>
+            <button class="stamp-btn text-xl hover:scale-125 transition-transform" onclick="setStamp('🎵')">🎵<\/button>
+            <button class="stamp-btn text-xl hover:scale-125 transition-transform" onclick="setStamp('🌸')">🌸<\/button>
+            <button class="stamp-btn text-xl hover:scale-125 transition-transform" onclick="setStamp('🦋')">🦋<\/button>
+            <button class="stamp-btn text-xl hover:scale-125 transition-transform" onclick="setStamp('🎀')">🎀<\/button>
+            <button class="stamp-btn text-xl hover:scale-125 transition-transform" onclick="setStamp('💫')">💫<\/button>
+            <div class="flex items-center gap-1">
+              <span class="text-[10px] text-slate-500">大小：<\/span>
+              <input type="range" id="stamp-size-slider" min="20" max="120" value="50" class="w-24">
+            <\/div>
+          <\/div>
+          <!-- 文字輸入 (文字模式) -->
+          <div id="text-row" class="hidden flex items-center gap-2">
+            <input type="text" id="text-input" placeholder="輸入文字後點畫面放置" class="flex-1 px-2 py-1.5 bg-white border border-sky-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-sky-400" style="-webkit-appearance:none">
+            <input type="range" id="text-size-slider" min="16" max="120" value="40" class="w-24" title="文字大小">
+          <\/div>
+          <\/div><!-- /#draw-tools-panel -->
+        <\/div><!-- /#draw-toolbar -->
+      <\/div><!-- /.md:col-span-7 -->
+
+      <!-- 控制面板 -->
+      <div class="md:col-span-3 bg-white border border-sky-200 rounded-2xl p-4 flex flex-col justify-between gap-3">
+        <div class="space-y-3 flex-1 flex flex-col justify-center">
+          <p class="text-[11px] font-bold text-sky-600 border-b border-sky-200 pb-1.5 flex items-center gap-1"><i class="fa-solid fa-toggle-on"><\/i> 2. 鏡頭與快門<\/p>
+          <div id="actions-capture" class="space-y-2.5 w-full">
+            <button onclick="switchCameraChannel()" class="w-full py-2.5 bg-sky-100 text-slate-700 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer rounded-xl hover:bg-sky-200 transition-colors">
+              <i class="fa-solid fa-camera-rotate text-sm"><\/i> 切換前後鏡頭
+            <\/button>
+            <button onclick="takeSnapshot()" class="w-full bg-emerald-400 hover:bg-emerald-400 text-white font-black py-4 flex items-center justify-center gap-2 text-sm shadow-md cursor-pointer rounded-xl transition-all">
+              <i class="fa-solid fa-camera text-base"><\/i> 按下快門拍照
+            <\/button>
+          <\/div>
+          <div id="actions-save" class="hidden space-y-2 w-full">
+            <p class="text-[10px] text-amber-600 font-medium leading-relaxed bg-amber-100 border border-amber-200 p-2 rounded-xl">
+              <i class="fa-solid fa-info-circle"><\/i> <b>iOS密技：<\/b>直接<b>長按左側相片<\/b>選「加入照片」即可快速保存。
+            <\/p>
+            <button onclick="triggerIosSave()" class="w-full bg-amber-300 text-slate-900 font-extrabold py-3 text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer rounded-xl hover:bg-amber-300 transition-all">
+              <i class="fa-solid fa-download text-sm"><\/i> 儲存至本機相簿
+            <\/button>
+            <button onclick="uploadToCloudOnly()" id="btn-cloud" class="w-full bg-sky-500 text-white font-bold py-3 text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer rounded-xl hover:bg-sky-500 transition-all">
+              <i class="fa-solid fa-cloud-arrow-up text-sm"><\/i> 同步遞交雲端
+            <\/button>
+            <button onclick="showCloudQr()" id="btn-cloud-download" class="hidden w-full bg-emerald-400 text-white font-bold py-3 text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer rounded-xl hover:bg-emerald-400 transition-all">
+              <i class="fa-solid fa-qrcode text-sm"><\/i> 下載雲端拍貼圖
+            <\/button>
+            <button onclick="resetCamera()" class="w-full bg-sky-100 hover:bg-sky-200 text-slate-600 py-2 text-xs font-semibold cursor-pointer rounded-xl transition-all">
+              <i class="fa-solid fa-arrow-rotate-left"><\/i> 放棄重新拍照
+            <\/button>
+          <\/div>
+        <\/div>
+        <div class="text-[10px] text-slate-500 border-t border-sky-200 pt-2 text-center">支援 1024×768 無損畫質<\/div>
+      <\/div>
+    <\/div>
+  <\/main>
+
+  <!-- 雲端拍貼圖 QR 分享視窗 -->
+  <div id="qr-modal" class="hidden fixed inset-0 bg-black/90 z-50 items-center justify-center p-4" onclick="closeQrModal()">
+    <div class="bg-white rounded-2xl p-5 flex flex-col items-center gap-3 max-w-xs w-full" onclick="event.stopPropagation()">
+      <p class="text-slate-800 font-bold text-sm"><i class="fa-solid fa-qrcode mr-1"><\/i> 掃描下載雲端拍貼圖<\/p>
+      <p class="text-[11px] text-slate-500 text-center leading-relaxed">用手機相機掃描下方 QR Code，即可開啟並下載雲端硬碟中的拍貼圖。<\/p>
+      <div id="qr-box" class="p-2 bg-white rounded-lg border border-sky-200"><\/div>
+      <a id="qr-link" href="#" target="_blank" rel="noopener" class="text-sky-600 text-[11px] underline break-all text-center">在雲端硬碟中開啟<\/a>
+      <button onclick="closeQrModal()" class="mt-1 px-5 py-1.5 bg-sky-100 hover:bg-sky-200 text-slate-700 rounded-lg text-xs font-semibold transition-all">關閉<\/button>
+    <\/div>
+  <\/div>
+
+  <footer class="py-3 px-4 text-center border-t border-sky-100 bg-sky-50 flex-shrink-0 space-y-0.5">
+    <p class="text-[10px] text-slate-500">課堂行動載具專用面板 | Made by <a href="https://kentxchang.blogspot.tw" target="_blank" rel="noopener noreferrer" class="text-sky-600 hover:text-sky-500">阿剛老師<\/a><\/p>
+    <p class="text-[10px] text-slate-400">本軟體採「創用 CC 姓名標示-非商業性-禁止改作 4.0」授權，僅限教育非商業用途。<\/p>
+  <\/footer>
+
+  <script>
+    const studentFrames = ${framesJson};
+    const config = { cameraFacing: "${camFacing}", gasUrl: "${gasUrl}" };
+    let localStream = null, selFrameIdx = 0, curFacing = config.cameraFacing, generatedBase64 = "";
+
+    // ---- 手繪狀態 ----
+    let drawCanvas = null, drawCtx = null;
+    let drawActive = false, drawLastX = 0, drawLastY = 0;
+    let drawColor = '#ff3b5c', drawSize = 3, drawMode = 'pen', stampEmoji = '❤️';
+    let drawEnabled = false; // ★ 預設關閉，讓 iOS 長按存圖正常運作
+
+    document.addEventListener("DOMContentLoaded", () => { initStudentSelector(); });
+
+    function initStudentSelector() {
+      const c = document.getElementById("student-frame-selector");
+      let html = "";
+      for (let i = 0; i < studentFrames.length; i++) {
+        const cls = i === 0 ? "border-sky-300 ring-2 ring-sky-300/50" : "border-sky-200";
+        html += '<button type="button" onclick="selectFrame(' + i + ')" id="sfb-' + i + '" class="flex-shrink-0 relative w-full aspect-[4/3] rounded-xl overflow-hidden border-2 ' + cls + ' bg-white cursor-pointer">';
+        html += '<img src="' + studentFrames[i].base64 + '" class="w-full h-full object-fill pointer-events-none"><\\/button>';
+      }
+      if (c) c.innerHTML = html;
+      const ov = document.getElementById("frame-overlay");
+      if (ov && studentFrames.length > 0) ov.src = studentFrames[0].base64;
+    }
+
+    function selectFrame(idx) {
+      selFrameIdx = idx;
+      const ov = document.getElementById("frame-overlay");
+      if (ov) ov.src = studentFrames[idx].base64;
+      for (let i = 0; i < studentFrames.length; i++) {
+        const b = document.getElementById("sfb-" + i);
+        if (b) b.className = "flex-shrink-0 relative w-full aspect-[4/3] rounded-xl overflow-hidden border-2 " + (i===idx?"border-sky-300 ring-2 ring-sky-300/50":"border-sky-200") + " bg-white cursor-pointer";
+      }
+    }
+
+    function startCamera() {
+      const n = document.getElementById("stu-name").value.trim();
+      if (!n) { alert("請先填寫您的姓名！"); return; }
+      const badge = document.getElementById("user-badge");
+      badge.innerText = n; badge.classList.remove("hidden");
+      document.getElementById("login-panel").classList.add("hidden");
+      document.getElementById("workbench-panel").classList.remove("hidden");
+      openMediaStream();
+    }
+
+    function openMediaStream() {
+      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: curFacing, width:{ideal:1024}, height:{ideal:768} }, audio:false })
+      .then(stream => {
+        localStream = stream;
+        const v = document.getElementById("video");
+        v.srcObject = stream;
+        curFacing==="user" ? v.classList.add("mirror-mode") : v.classList.remove("mirror-mode");
+      })
+      .catch(() => alert("無法啟用相機，請核准網頁存取權限。"));
+    }
+
+    function switchCameraChannel() { curFacing = curFacing==="user"?"environment":"user"; openMediaStream(); }
+
+    function takeSnapshot() {
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("output-canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = 1024; canvas.height = 768;
+      ctx.save();
+      if (curFacing==="user") { ctx.translate(1024,0); ctx.scale(-1,1); }
+      ctx.drawImage(video, 0, 0, 1024, 768);
+      ctx.restore();
+      const img = new Image();
+      img.src = studentFrames[selFrameIdx].base64;
+      img.onload = function() {
+        ctx.drawImage(img, 0, 0, 1024, 768);
+        if (localStream) localStream.getTracks().forEach(t => t.stop());
+        generatedBase64 = canvas.toDataURL("image/png");
+        document.getElementById("ios-target-img").src = generatedBase64;
+        // 初始化手繪 canvas（保持 pointer-events:none，等使用者手動開啟）
+        drawCanvas = document.getElementById("draw-canvas");
+        drawCanvas.width = 1024; drawCanvas.height = 768;
+        drawCtx = drawCanvas.getContext("2d");
+        drawCtx.clearRect(0, 0, 1024, 768);
+        drawCanvas.style.pointerEvents = 'none'; // ★ 預設關閉
+        drawEnabled = false;
+        setupDrawEvents();
+        // 重置 toggle 按鈕外觀
+        const dtb = document.getElementById("draw-toggle-btn");
+        if (dtb) {
+          dtb.className = "flex-1 py-2 bg-sky-100 hover:bg-sky-600 border border-sky-200 hover:border-sky-300 text-slate-600 hover:text-white rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5";
+          dtb.innerHTML = '<i class="fa-solid fa-pen-nib"><\\/i> 開啟手繪裝飾';
+        }
+        document.getElementById("draw-tools-panel").classList.add("hidden");
+        document.getElementById("draw-hint").classList.remove("hidden");
+        // 切換顯示
+        document.getElementById("wrapper-video").classList.add("hidden");
+        document.getElementById("wrapper-result").classList.remove("hidden");
+        document.getElementById("actions-capture").classList.add("hidden");
+        document.getElementById("actions-save").classList.remove("hidden");
+        document.getElementById("draw-toolbar").classList.remove("hidden");
+      };
+    }
+
+    function setupDrawEvents() {
+      if (!drawCanvas) return;
+      drawCanvas.addEventListener("mousedown", onDrawDown, false);
+      drawCanvas.addEventListener("mousemove", onDrawMove, false);
+      drawCanvas.addEventListener("mouseup", onDrawUp, false);
+      drawCanvas.addEventListener("mouseleave", onDrawUp, false);
+      drawCanvas.addEventListener("touchstart", onDrawDown, { passive:false });
+      drawCanvas.addEventListener("touchmove", onDrawMove, { passive:false });
+      drawCanvas.addEventListener("touchend", onDrawUp, false);
+    }
+
+    // ★ 手繪開關：關閉時 canvas pointer-events:none，iOS 長按圖片存圖正常運作
+    function toggleDrawing() {
+      drawEnabled = !drawEnabled;
+      const dc = document.getElementById("draw-canvas");
+      const btn = document.getElementById("draw-toggle-btn");
+      const panel = document.getElementById("draw-tools-panel");
+      const hint = document.getElementById("draw-hint");
+      if (drawEnabled) {
+        dc.style.pointerEvents = 'auto';
+        dc.style.touchAction = 'none';
+        btn.className = "flex-1 py-2 bg-sky-500 border border-sky-300 text-white rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5";
+        btn.innerHTML = '<i class="fa-solid fa-pen-nib"><\\/i> 關閉手繪 (長按存圖)';
+        panel.classList.remove("hidden");
+        hint.classList.add("hidden");
+      } else {
+        // ★ 關閉手繪前：把手繪層合併進底圖 src
+        // 這樣 iOS 長按 <img> 存圖時，手繪筆跡已烙印在圖片中
+        const baseImg = document.getElementById("ios-target-img");
+        if (baseImg && drawCanvas && drawCtx) {
+          const tmp = document.createElement("canvas");
+          tmp.width = drawCanvas.width;
+          tmp.height = drawCanvas.height;
+          const tctx = tmp.getContext("2d");
+          tctx.drawImage(baseImg, 0, 0, tmp.width, tmp.height);
+          tctx.drawImage(drawCanvas, 0, 0);
+          baseImg.src = tmp.toDataURL("image/png");
+          drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+        }
+        dc.style.pointerEvents = 'none';
+        dc.style.touchAction = 'auto';
+        btn.className = "flex-1 py-2 bg-sky-100 hover:bg-sky-600 border border-sky-200 hover:border-sky-300 text-slate-600 hover:text-white rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5";
+        btn.innerHTML = '<i class="fa-solid fa-pen-nib"><\\/i> 開啟手繪裝飾';
+        panel.classList.add("hidden");
+        hint.classList.remove("hidden");
+      }
+    }
+
+    function getDrawXY(e) {
+      const rect = drawCanvas.getBoundingClientRect();
+      const cx = e.touches ? e.touches[0].clientX : e.clientX;
+      const cy = e.touches ? e.touches[0].clientY : e.clientY;
+      return { x: (cx - rect.left) * drawCanvas.width / rect.width, y: (cy - rect.top) * drawCanvas.height / rect.height };
+    }
+
+    function onDrawDown(e) {
+      e.preventDefault();
+      const { x, y } = getDrawXY(e);
+      if (drawMode === 'stamp') {
+        const sz = parseInt(document.getElementById('stamp-size-slider').value);
+        drawCtx.font = sz + "px sans-serif";
+        drawCtx.textAlign = "center";
+        drawCtx.textBaseline = "middle";
+        drawCtx.fillText(stampEmoji, x, y);
+        return;
+      }
+      if (drawMode === 'text') {
+        const txt = document.getElementById('text-input').value;
+        if (!txt) { alert("請先在下方輸入文字！"); return; }
+        const sz = parseInt(document.getElementById('text-size-slider').value);
+        drawCtx.save();
+        drawCtx.font = "bold " + sz + "px sans-serif";
+        drawCtx.fillStyle = drawColor;
+        drawCtx.strokeStyle = "rgba(0,0,0,0.5)";
+        drawCtx.lineWidth = 2;
+        drawCtx.textAlign = "center";
+        drawCtx.textBaseline = "middle";
+        drawCtx.strokeText(txt, x, y);
+        drawCtx.fillText(txt, x, y);
+        drawCtx.restore();
+        return;
+      }
+      drawActive = true;
+      drawLastX = x; drawLastY = y;
+    }
+
+    function onDrawMove(e) {
+      e.preventDefault();
+      if (!drawActive) return;
+      const { x, y } = getDrawXY(e);
+      if (drawMode === 'eraser') {
+        drawCtx.save();
+        drawCtx.globalCompositeOperation = 'destination-out';
+        drawCtx.beginPath();
+        drawCtx.arc(x, y, drawSize * 3, 0, Math.PI * 2);
+        drawCtx.fillStyle = 'rgba(0,0,0,1)';
+        drawCtx.fill();
+        drawCtx.restore();
+      } else {
+        drawCtx.strokeStyle = drawColor;
+        drawCtx.lineWidth = drawSize;
+        drawCtx.lineCap = 'round';
+        drawCtx.lineJoin = 'round';
+        drawCtx.beginPath();
+        drawCtx.moveTo(drawLastX, drawLastY);
+        drawCtx.lineTo(x, y);
+        drawCtx.stroke();
+      }
+      drawLastX = x; drawLastY = y;
+    }
+
+    function onDrawUp(e) { drawActive = false; }
+
+    function setDrawMode(mode) {
+      drawMode = mode;
+      document.querySelectorAll('.tool-mode-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('mode-' + mode).classList.add('active');
+      document.getElementById('color-row').classList.toggle('hidden', mode==='stamp'||mode==='text'?false:false);
+      document.getElementById('size-row').classList.toggle('hidden', mode==='stamp'||mode==='text');
+      document.getElementById('stamp-row').classList.toggle('hidden', mode!=='stamp');
+      document.getElementById('text-row').classList.toggle('hidden', mode!=='text');
+      if (mode==='eraser'||mode==='text'||mode==='stamp') {
+        document.getElementById('color-row').classList.add('hidden');
+        document.getElementById('size-row').classList.add('hidden');
+      } else {
+        document.getElementById('color-row').classList.remove('hidden');
+        document.getElementById('size-row').classList.remove('hidden');
+      }
+    }
+
+    function setDrawColor(c) {
+      drawColor = c;
+      document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    function setDrawSize(s, btn) {
+      drawSize = s;
+      document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+      if (event && event.target) event.target.classList.add('active');
+    }
+
+    function setStamp(emoji) {
+      stampEmoji = emoji;
+      document.querySelectorAll('.stamp-btn').forEach(b => b.style.filter='');
+      if (event && event.target) event.target.style.filter = 'drop-shadow(0 0 4px #818cf8)';
+    }
+
+    function clearDrawings() {
+      if (!drawCtx) return;
+      drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+    }
+
+    function getCompositedDataURL() {
+      const c = document.createElement("canvas");
+      c.width = 1024; c.height = 768;
+      const ctx = c.getContext("2d");
+      const base = document.getElementById("ios-target-img");
+      ctx.drawImage(base, 0, 0, 1024, 768);
+      if (drawCanvas) ctx.drawImage(drawCanvas, 0, 0, 1024, 768);
+      return c.toDataURL("image/png");
+    }
+
+    // ★ 雲端上傳的圖片分享連結（上傳成功後填入）
+    let cloudFileUrl = "";
+
+    function resetCamera() {
+      document.getElementById("wrapper-result").classList.add("hidden");
+      document.getElementById("wrapper-video").classList.remove("hidden");
+      document.getElementById("actions-save").classList.add("hidden");
+      document.getElementById("actions-capture").classList.remove("hidden");
+      document.getElementById("draw-toolbar").classList.add("hidden");
+      const btn = document.getElementById("btn-cloud");
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-sm"><\\/i> 同步遞交雲端';
+      // ★ 重置雲端分享狀態
+      cloudFileUrl = "";
+      const dlBtn = document.getElementById("btn-cloud-download");
+      if (dlBtn) dlBtn.classList.add("hidden");
+      // ★ 重置手繪狀態
+      if (drawCtx) drawCtx.clearRect(0, 0, 1024, 768);
+      drawEnabled = false;
+      if (drawCanvas) { drawCanvas.style.pointerEvents = 'none'; drawCanvas.style.touchAction = 'auto'; }
+      openMediaStream();
+    }
+
+    function triggerIosSave() {
+      const name = document.getElementById("stu-name").value.trim();
+      const dataUrl = getCompositedDataURL();
+      const link = document.createElement("a");
+      link.download = name + "_智慧作品.png";
+      link.href = dataUrl;
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+
+    function uploadToCloudOnly() {
+      if (!config.gasUrl) { alert("未偵測到後台 GAS 設定，請直接下載相片。"); return; }
+      const btn = document.getElementById("btn-cloud");
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"><\\/i> 正在上傳原圖...';
+
+      // ★ 上傳「原圖」：1024×768 PNG 無壓縮，存入雲端硬碟「拍貼照」資料夾
+      const photoData = getCompositedDataURL();
+      // 產生本次上傳專屬 ID，供後端暫存分享連結、前端用 JSONP 取回
+      const uploadId = "u" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
+      const payload = { uploadId: uploadId, studentName: document.getElementById("stu-name").value.trim(), photoData: photoData };
+
+      // ★ 從本機 file:// 開啟時 origin 為 null，GAS 回應不含 CORS 標頭，
+      //   無法以 fetch 讀取回應。故採「no-cors 送出圖片 + JSONP 取回連結」：
+      //   1) no-cors POST：可靠地把原圖寫入雲端硬碟（回應雖不可讀，資料已送達）
+      //   2) JSONP GET：以 <script> 載入分享連結，不受 CORS 限制
+      fetch(config.gasUrl, {
+        method: "POST",
+        body: JSON.stringify(payload),
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        mode: "no-cors"
+      })
+      .then(() => {
+        btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"><\\/i> 取得雲端連結中...';
+        fetchCloudUrl(uploadId, 0);
+      })
+      .catch(() => {
+        alert("上傳失敗或通訊不穩定，請重新遞交。");
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-sm"><\\/i> 重新遞交雲端';
+      });
+    }
+
+    // ★ 以 JSONP 取回本次上傳的雲端硬碟分享連結（含重試，等待後端快取就緒）
+    function fetchCloudUrl(uploadId, attempt) {
+      const btn = document.getElementById("btn-cloud");
+      const cbName = "cbUrl_" + uploadId + "_" + attempt;
+      const script = document.createElement("script");
+      let settled = false;
+      const cleanup = function () {
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+        if (script.parentNode) script.parentNode.removeChild(script);
+      };
+      const retryOrFail = function () {
+        if (attempt < 6) { setTimeout(function () { fetchCloudUrl(uploadId, attempt + 1); }, 1200); }
+        else { onCloudUrlFailed(); }
+      };
+      window[cbName] = function (res) {
+        settled = true; cleanup();
+        if (res && res.status === "success" && res.fileUrl) { onCloudUrlReady(res.fileUrl); }
+        else { retryOrFail(); }
+      };
+      script.onerror = function () { if (settled) return; cleanup(); retryOrFail(); };
+      script.src = config.gasUrl + "?action=geturl&uploadId=" + encodeURIComponent(uploadId) +
+        "&callback=" + cbName + "&t=" + Date.now();
+      document.body.appendChild(script);
+    }
+
+    function onCloudUrlReady(url) {
+      cloudFileUrl = url;
+      const btn = document.getElementById("btn-cloud");
+      btn.innerHTML = '<i class="fa-solid fa-check"><\\/i> 雲端已上傳';
+      const dlBtn = document.getElementById("btn-cloud-download");
+      if (dlBtn) dlBtn.classList.remove("hidden");
+      alert("成功上傳原圖至雲端「拍貼照」資料夾！可按「下載雲端拍貼圖」顯示分享 QR Code。");
+    }
+
+    function onCloudUrlFailed() {
+      // 圖片多半已上傳成功，只是分享連結取回逾時
+      const btn = document.getElementById("btn-cloud");
+      btn.innerHTML = '<i class="fa-solid fa-check"><\\/i> 圖片已上傳';
+      alert("圖片已上傳至雲端「拍貼照」資料夾，但取得分享連結逾時。\\n稍後可至雲端硬碟查看，或重新遞交以取得 QR Code。");
+      btn.disabled = false;
+    }
+
+    // ★ 顯示雲端拍貼圖的雲端硬碟分享 QR Code
+    function showCloudQr() {
+      if (!cloudFileUrl) { alert("尚未取得雲端連結，請先成功上傳。"); return; }
+      const box = document.getElementById("qr-box");
+      box.innerHTML = "";
+      new QRCode(box, { text: cloudFileUrl, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+      document.getElementById("qr-link").href = cloudFileUrl;
+      const m = document.getElementById("qr-modal");
+      m.classList.remove("hidden"); m.classList.add("flex");
+    }
+
+    function closeQrModal() {
+      const m = document.getElementById("qr-modal");
+      m.classList.add("hidden"); m.classList.remove("flex");
+    }
+  <\/script>
+<\/body>
+<\/html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = '使用者端_拍貼趣.html';
+  link.click();
+}
+
+// ==============================
+// REMOVAL TOOL (rmbg_ prefix)
+// ==============================
+let rmbg_origImg=null, rmbg_origCanvas=null, rmbg_origCtx=null;
+let rmbg_mainCanvas=null, rmbg_ctx=null, rmbg_brushCanvas=null, rmbg_brushCtx=null;
+let rmbg_activeTool='wand', rmbg_histStack=[], rmbg_redoStack=[];
+const rmbg_maxHist=15;
+let rmbg_drawing=false, rmbg_lx=0, rmbg_ly=0;
+
+function initRmbgTool() {
+  rmbg_mainCanvas = document.getElementById('rmbg-main-canvas'); if (!rmbg_mainCanvas) return;
+  rmbg_ctx = rmbg_mainCanvas.getContext('2d',{willReadFrequently:true});
+  rmbg_origCanvas = document.createElement('canvas'); rmbg_origCtx = rmbg_origCanvas.getContext('2d',{willReadFrequently:true});
+  rmbg_brushCanvas = document.createElement('canvas'); rmbg_brushCtx = rmbg_brushCanvas.getContext('2d');
+
+  const sl = (id,vid,suf) => document.getElementById(id).addEventListener('input',e=>{ document.getElementById(vid).innerText=e.target.value+(suf||''); });
+  sl('rmbg-input-tolerance','rmbg-val-tolerance');
+  sl('rmbg-input-feather','rmbg-val-feather','px');
+  sl('rmbg-input-brush-size','rmbg-val-brush-size','px',()=>rmbg_updateCursorSize());
+  document.getElementById('rmbg-input-brush-size').addEventListener('input',()=>rmbg_updateCursorSize());
+  sl('rmbg-input-brush-hardness','rmbg-val-brush-hardness','%');
+
+  const fi=document.getElementById('rmbg-file-input');
+  fi.addEventListener('change',e=>rmbg_loadFile(e.target.files[0]));
+  document.getElementById('rmbg-btn-browse').addEventListener('click',()=>fi.click());
+  document.getElementById('rmbg-btn-change').addEventListener('click',()=>fi.click());
+
+  const dz=document.getElementById('rmbg-dropzone');
+  dz.addEventListener('click',()=>fi.click());
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('border-sky-300');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('border-sky-300'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('border-sky-300');if(e.dataTransfer.files[0])rmbg_loadFile(e.dataTransfer.files[0]);});
+
+  document.querySelectorAll('.rmbg-tool-btn').forEach(b=>b.addEventListener('click',()=>rmbg_selectTool(b.getAttribute('data-tool'))));
+  document.getElementById('rmbg-bg-grid').addEventListener('click',()=>rmbg_setBg('grid'));
+  document.getElementById('rmbg-bg-dark').addEventListener('click',()=>rmbg_setBg('dark'));
+  document.getElementById('rmbg-bg-light').addEventListener('click',()=>rmbg_setBg('light'));
+  document.getElementById('rmbg-btn-undo').addEventListener('click',rmbg_undo);
+  document.getElementById('rmbg-btn-redo').addEventListener('click',rmbg_redo);
+  document.getElementById('rmbg-btn-reset').addEventListener('click',()=>{
+    if(!rmbg_origImg)return;
+    rmbg_ctx.clearRect(0,0,rmbg_mainCanvas.width,rmbg_mainCanvas.height);
+    rmbg_ctx.drawImage(rmbg_origImg,0,0,rmbg_mainCanvas.width,rmbg_mainCanvas.height);
+    rmbg_saveState();
+  });
+  document.getElementById('rmbg-btn-download').addEventListener('click',()=>{
+    if(!rmbg_origImg){alert('請先上傳並進行去背處理。');return;}
+    try{const a=document.createElement('a');a.download='rembg_'+(Date.now()%100000)+'.png';a.href=rmbg_mainCanvas.toDataURL('image/png');document.body.appendChild(a);a.click();document.body.removeChild(a);}
+    catch(e){alert('下載失敗，請確認圖片來源。');}
+  });
+  rmbg_mainCanvas.addEventListener('mousedown',rmbg_onDown);
+  rmbg_mainCanvas.addEventListener('mousemove',rmbg_onMove);
+  window.addEventListener('mouseup',rmbg_onUp);
+  rmbg_mainCanvas.addEventListener('touchstart',rmbg_onDown,{passive:false});
+  rmbg_mainCanvas.addEventListener('touchmove',rmbg_onMove,{passive:false});
+  rmbg_mainCanvas.addEventListener('touchend',rmbg_onUp);
+  rmbg_mainCanvas.addEventListener('mouseleave',()=>document.getElementById('rmbg-brush-cursor').classList.add('hidden'));
+  window.addEventListener('resize',rmbg_updateCursorSize);
+  window.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&document.getElementById('tab-rmbg').classList.contains('active')){
+      if(e.key==='z'||e.key==='Z'){e.preventDefault();rmbg_undo();}
+      else if(e.key==='y'||e.key==='Y'){e.preventDefault();rmbg_redo();}
+    }
+  });
+}
+
+function rmbg_setAsFrame() {
+  if (!rmbg_origImg) { alert('請先上傳並進行去背處理！'); return; }
+  const dataURL = rmbg_mainCanvas.toDataURL('image/png');
+  const name = '去背圖框_' + (globalState.framesArray.length + 1);
+  globalState.framesArray.push({ name: name, base64: dataURL });
+  updateFramesListUI();
+  switchTab('tab-main');
+  alert('✅ 已將去背圖片加入圖框清單第 ' + globalState.framesArray.length + ' 號！');
+}
+
+function rmbg_loadFile(file) {
+  if (!file||!file.type.startsWith('image/')) return;
+  const ov=document.getElementById('rmbg-loading-overlay'); ov.classList.remove('hidden');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=function(){
+      let w=img.width,h=img.height,max=1600;
+      if(w>max||h>max){if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;}}
+      rmbg_origImg=img;
+      [rmbg_mainCanvas,rmbg_origCanvas,rmbg_brushCanvas].forEach(c=>{c.width=w;c.height=h;});
+      rmbg_ctx.drawImage(img,0,0,w,h); rmbg_origCtx.drawImage(img,0,0,w,h);
+      rmbg_histStack=[];rmbg_redoStack=[];rmbg_saveState();
+      document.getElementById('rmbg-empty-state').classList.add('hidden');
+      document.getElementById('rmbg-canvas-wrapper').classList.remove('hidden');
+      document.getElementById('rmbg-panel-upload').classList.add('hidden');
+      document.getElementById('rmbg-panel-tools').classList.remove('hidden');
+      document.getElementById('rmbg-tool-tip-bar').classList.remove('hidden');
+      document.getElementById('rmbg-instructions').classList.add('hidden');
+      rmbg_updateUndoRedo(); rmbg_selectTool('wand'); ov.classList.add('hidden');
+    };
+    img.onerror=()=>{ov.classList.add('hidden');alert('圖片讀取出錯，請重試。');};
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function rmbg_selectTool(tool) {
+  rmbg_activeTool=tool;
+  document.querySelectorAll('.rmbg-tool-btn').forEach(b=>{
+    b.classList.toggle('border-sky-300',b.getAttribute('data-tool')===tool);
+    b.classList.toggle('bg-white/80',b.getAttribute('data-tool')===tool);
+  });
+  ['rmbg-control-tolerance','rmbg-control-feather','rmbg-control-brush-size','rmbg-control-brush-hardness'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  document.getElementById('rmbg-brush-cursor').classList.add('hidden');
+  const tip=document.getElementById('rmbg-tool-tip-text');
+  if(tool==='wand'){document.getElementById('rmbg-control-tolerance').classList.remove('hidden');if(tip)tip.innerText="智慧魔術棒：點擊背景，清除相連的同色區域";}
+  else if(tool==='chroma'){document.getElementById('rmbg-control-tolerance').classList.remove('hidden');document.getElementById('rmbg-control-feather').classList.remove('hidden');if(tip)tip.innerText="全局去色：點擊色彩，消除整張相片中所有相近色彩";}
+  else if(tool==='eraser'){document.getElementById('rmbg-control-brush-size').classList.remove('hidden');document.getElementById('rmbg-control-brush-hardness').classList.remove('hidden');document.getElementById('rmbg-brush-cursor').classList.remove('hidden');if(tip)tip.innerText="手動橡皮擦：按住左鍵塗抹以清除多餘雜點";}
+  else if(tool==='restore'){document.getElementById('rmbg-control-brush-size').classList.remove('hidden');document.getElementById('rmbg-control-brush-hardness').classList.remove('hidden');document.getElementById('rmbg-brush-cursor').classList.remove('hidden');if(tip)tip.innerText="細節還原畫筆：按住左鍵塗抹以補回主體細節";}
+}
+
+function rmbg_setBg(mode) {
+  const w=document.getElementById('rmbg-canvas-wrapper');
+  w.classList.remove('rmbg-checkerboard','bg-white','bg-white');
+  const ac="bg-white text-xs py-1.5 rounded-md font-medium border border-sky-200 text-white transition-all";
+  const ic="text-xs py-1.5 rounded-md text-slate-500 hover:text-white transition-all";
+  document.getElementById('rmbg-bg-grid').className=ic;document.getElementById('rmbg-bg-dark').className=ic;document.getElementById('rmbg-bg-light').className=ic;
+  if(mode==='grid'){w.classList.add('rmbg-checkerboard');document.getElementById('rmbg-bg-grid').className=ac;}
+  else if(mode==='dark'){w.classList.add('bg-white');document.getElementById('rmbg-bg-dark').className=ac;}
+  else{w.classList.add('bg-white');document.getElementById('rmbg-bg-light').className="bg-white text-xs py-1.5 rounded-md font-medium border border-sky-200 text-slate-800 transition-all";}
+}
+
+function rmbg_colorDist(r1,g1,b1,r2,g2,b2){const rm=(r1+r2)/2,r=r1-r2,g=g1-g2,b=b1-b2;return Math.sqrt((2+rm/256)*r*r+4*g*g+(2+(255-rm)/256)*b*b);}
+
+function rmbg_applyChroma(sx,sy){
+  const ov=document.getElementById('rmbg-loading-overlay');ov.classList.remove('hidden');
+  setTimeout(()=>{
+    const w=rmbg_mainCanvas.width,h=rmbg_mainCanvas.height;
+    const id=rmbg_ctx.getImageData(0,0,w,h);const d=id.data;
+    const ti=(sy*w+sx)*4;const tr=d[ti],tg=d[ti+1],tb=d[ti+2];
+    const tol=parseInt(document.getElementById('rmbg-input-tolerance').value);
+    const fea=parseInt(document.getElementById('rmbg-input-feather').value);
+    for(let i=0;i<d.length;i+=4){
+      if(d[i+3]===0)continue;
+      const dist=rmbg_colorDist(d[i],d[i+1],d[i+2],tr,tg,tb);
+      if(dist<=tol){d[i+3]=0;}
+      else if(fea>0&&dist<tol+fea){const a=Math.round((dist-tol)/fea*255);if(a<d[i+3])d[i+3]=a;}
+    }
+    rmbg_ctx.putImageData(id,0,0);rmbg_saveState();ov.classList.add('hidden');
+  },30);
+}
+
+function rmbg_applyWand(sx,sy){
+  const ov=document.getElementById('rmbg-loading-overlay');ov.classList.remove('hidden');
+  setTimeout(()=>{
+    const w=rmbg_mainCanvas.width,h=rmbg_mainCanvas.height;
+    const id=rmbg_ctx.getImageData(0,0,w,h);const d=id.data;
+    const ti=(sy*w+sx)*4;if(d[ti+3]===0){ov.classList.add('hidden');return;}
+    const tr=d[ti],tg=d[ti+1],tb=d[ti+2];
+    const tol=parseInt(document.getElementById('rmbg-input-tolerance').value);
+    const vis=new Uint8Array(w*h);const q=[sx,sy];vis[sy*w+sx]=1;let head=0;
+    while(head<q.length){
+      const cx=q[head++],cy=q[head++];d[(cy*w+cx)*4+3]=0;
+      const nb=[[cx,cy-1],[cx,cy+1],[cx-1,cy],[cx+1,cy]];
+      for(const[nx,ny]of nb){if(nx>=0&&nx<w&&ny>=0&&ny<h){const ni=ny*w+nx;if(!vis[ni]){const pi=ni*4;if(d[pi+3]>0&&rmbg_colorDist(d[pi],d[pi+1],d[pi+2],tr,tg,tb)<=tol){vis[ni]=1;q.push(nx,ny);}}}}
+    }
+    rmbg_ctx.putImageData(id,0,0);rmbg_saveState();ov.classList.add('hidden');
+  },30);
+}
+
+function rmbg_drawBrush(x,y,isStart=false){
+  const size=parseInt(document.getElementById('rmbg-input-brush-size').value);
+  const hard=parseInt(document.getElementById('rmbg-input-brush-hardness').value)/100;
+  if(isStart){rmbg_lx=x;rmbg_ly=y;}
+  rmbg_ctx.save();
+  if(rmbg_activeTool==='eraser'){
+    rmbg_ctx.globalCompositeOperation='destination-out';
+    const dist=Math.hypot(x-rmbg_lx,y-rmbg_ly);const steps=Math.max(1,Math.floor(dist/2));
+    for(let i=0;i<=steps;i++){const t=i/steps;const ix=rmbg_lx+(x-rmbg_lx)*t;const iy=rmbg_ly+(y-rmbg_ly)*t;
+      const g=rmbg_ctx.createRadialGradient(ix,iy,size*hard,ix,iy,size);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');rmbg_ctx.fillStyle=g;rmbg_ctx.beginPath();rmbg_ctx.arc(ix,iy,size,0,Math.PI*2);rmbg_ctx.fill();}
+  }else if(rmbg_activeTool==='restore'){
+    rmbg_brushCtx.clearRect(0,0,rmbg_mainCanvas.width,rmbg_mainCanvas.height);
+    const dist=Math.hypot(x-rmbg_lx,y-rmbg_ly);const steps=Math.max(1,Math.floor(dist/2));
+    for(let i=0;i<=steps;i++){const t=i/steps;const ix=rmbg_lx+(x-rmbg_lx)*t;const iy=rmbg_ly+(y-rmbg_ly)*t;
+      const g=rmbg_brushCtx.createRadialGradient(ix,iy,size*hard,ix,iy,size);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(1,'rgba(255,255,255,0)');rmbg_brushCtx.fillStyle=g;rmbg_brushCtx.beginPath();rmbg_brushCtx.arc(ix,iy,size,0,Math.PI*2);rmbg_brushCtx.fill();}
+    rmbg_brushCtx.globalCompositeOperation='source-in';rmbg_brushCtx.drawImage(rmbg_origCanvas,0,0);
+    rmbg_ctx.globalCompositeOperation='source-over';rmbg_ctx.drawImage(rmbg_brushCanvas,0,0);
+  }
+  rmbg_ctx.restore();rmbg_lx=x;rmbg_ly=y;
+}
+
+function rmbg_coords(e){
+  const rect=rmbg_mainCanvas.getBoundingClientRect();
+  const cx=e.touches?e.touches[0].clientX:e.clientX,cy=e.touches?e.touches[0].clientY:e.clientY;
+  return{x:Math.floor((cx-rect.left)*rmbg_mainCanvas.width/rect.width),y:Math.floor((cy-rect.top)*rmbg_mainCanvas.height/rect.height),cx,cy,rect};
+}
+
+function rmbg_updateCursorSize(){
+  if(!rmbg_mainCanvas)return;const rect=rmbg_mainCanvas.getBoundingClientRect();if(rect.width===0)return;
+  const size=parseInt(document.getElementById('rmbg-input-brush-size').value);
+  const r=size*(rect.width/rmbg_mainCanvas.width);const cursor=document.getElementById('rmbg-brush-cursor');
+  cursor.style.width=r*2+'px';cursor.style.height=r*2+'px';
+}
+
+function rmbg_onDown(e){
+  if(!rmbg_origImg)return;e.preventDefault();const c=rmbg_coords(e);
+  if(rmbg_activeTool==='wand')rmbg_applyWand(c.x,c.y);
+  else if(rmbg_activeTool==='chroma')rmbg_applyChroma(c.x,c.y);
+  else{rmbg_drawing=true;rmbg_drawBrush(c.x,c.y,true);}
+}
+function rmbg_onMove(e){
+  if(!rmbg_origImg)return;const c=rmbg_coords(e);const cursor=document.getElementById('rmbg-brush-cursor');
+  if(rmbg_activeTool==='eraser'||rmbg_activeTool==='restore'){
+    cursor.classList.remove('hidden');const size=parseInt(document.getElementById('rmbg-input-brush-size').value);
+    const r=size*(c.rect.width/rmbg_mainCanvas.width);cursor.style.width=r*2+'px';cursor.style.height=r*2+'px';
+    cursor.style.left=(c.cx-c.rect.left-r)+'px';cursor.style.top=(c.cy-c.rect.top-r)+'px';
+  }else{cursor.classList.add('hidden');}
+  if(rmbg_drawing)rmbg_drawBrush(c.x,c.y);
+}
+function rmbg_onUp(){if(rmbg_drawing){rmbg_drawing=false;rmbg_saveState();}}
+
+function rmbg_saveState(){
+  const s=rmbg_ctx.getImageData(0,0,rmbg_mainCanvas.width,rmbg_mainCanvas.height);
+  if(rmbg_histStack.length>=rmbg_maxHist)rmbg_histStack.shift();
+  rmbg_histStack.push(s);rmbg_redoStack=[];rmbg_updateUndoRedo();
+}
+function rmbg_undo(){if(rmbg_histStack.length>1){rmbg_redoStack.push(rmbg_histStack.pop());rmbg_ctx.putImageData(rmbg_histStack[rmbg_histStack.length-1],0,0);rmbg_updateUndoRedo();}}
+function rmbg_redo(){if(rmbg_redoStack.length>0){const s=rmbg_redoStack.pop();rmbg_histStack.push(s);rmbg_ctx.putImageData(s,0,0);rmbg_updateUndoRedo();}}
+function rmbg_updateUndoRedo(){document.getElementById('rmbg-btn-undo').disabled=rmbg_histStack.length<=1;document.getElementById('rmbg-btn-redo').disabled=rmbg_redoStack.length===0;}
+</script>
+</body>
+</html>
